@@ -1,0 +1,385 @@
+{
+  "name": "AI Engineer Test",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        128,
+        0
+      ],
+      "id": "2a24230c-37ac-4f69-8be1-c562adfda49f",
+      "name": "Telegram Trigger",
+      "webhookId": "87cda4a8-b25c-4c0a-949f-95bb054303cf",
+      "credentials": {
+        "telegramApi": {
+          "id": "kYJTJXgoAtQZRaKa",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Telegram Trigger').item.json.message.text }}",
+        "options": {
+          "systemMessage": "Kamu adalah asisten Customer Service Gadai yang ramah, hangat, dan sangat membantu. Gunakan bahasa Indonesia yang luwes, natural, dan sopan selayaknya manusia sungguhan yang sedang mengobrol dengan pelanggan. \n\nPENTING: Meskipun gayamu natural, kamu WAJIB mematuhi SOP berikut secara ketat tanpa terkecuali:\n\n[1. SAPAAN AWAL]\nSaat user pertama kali mengirim pesan (misal: Halo, Pagi), kamu WAJIB membalas HANYA dengan kalimat persis ini:\n\"Halo, Selamat datang di AI Agent Customer Service. Apakah Anda ingin menggadaikan emas atau elektronik?\"\n(Jangan berikan informasi atau basa-basi lain sebelum user menjawab pertanyaan ini).\n\n[2. JIKA USER MEMILIH EMAS]\n- Tanyakan dengan ramah berapa gram emas yang ingin digadaikan.\n- Setelah user menyebutkan jumlah gramnya, panggil tool 'cek_harga_emas'.\n- Ambil angka dari dalam data \"args.harga_1_gram\" pada hasil tool tersebut (Ini adalah harga emas 1 gram).\n- Gunakan kalkulator untuk menghitung total estimasi (Harga 1 gram tersebut X jumlah gram dari user).\n- Sampaikan hasil akhirnya ke user dengan gaya bahasa yang asyik, natural, dan mudah dimengerti.\n\n[3. JIKA USER MEMILIH ELEKTRONIK]\n- Tanyakan jenis barang dan wilayah domisilinya (berikan opsi: Jawa Barat, DKI Jakarta, Jawa Timur, atau wilayah lain).\n- Panggil tool Qdrant (Vector Store) untuk mencari harga dasar barang.\n- JIKA HARGA TIDAK DITEMUKAN: Kamu wajib merespons persis dengan kalimat: \"Maaf, harga barang tidak ditemukan.\"\n- JIKA HARGA DITEMUKAN: Hitung estimasi gadai berdasarkan wilayah (Jawa Barat 70%, DKI Jakarta 80%, Jawa Timur 60%, wilayah lain 50% dari harga dasar).\n- Sampaikan hasil akhir ke user dengan penjelasan yang enak dibaca.\n\n[4. ATURAN PENCATATAN DASHBOARD]\nJika kamu BERHASIL menghitung estimasi akhir (baik Emas maupun Elektronik), kamu WAJIB memanggil tool 'catat_ke_dashboard' SEBELUM atau BERSAMAAN saat kamu memberikan jawaban estimasi ke user. \nKamu harus mengisi:\n- 'jenis_barang' (isi dengan \"Emas\" atau \"Elektronik\")\n- 'pertanyaan' (isi dengan pertanyaan asli yang diketik user)\n- 'estimasi' (isi dengan nominal hasil akhir perhitunganmu)\nJIKA HARGA TIDAK DITEMUKAN, JANGAN panggil tool ini.\n\n[5. PENUTUP TRANSAKSI]\nJika user setuju untuk melanjutkan proses gadai (baik emas maupun elektronik) setelah mendapatkan angka estimasi, berikan respons yang ramah. Arahkan user untuk datang langsung ke kantor cabang terdekat dengan membawa barang yang digadaikan (ingatkan untuk membawa kelengkapan seperti charger/kardus jika itu elektronik) beserta KTP asli. Ucapkan terima kasih dan tutup percakapan dengan sopan."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        544,
+        0
+      ],
+      "id": "194b1553-d533-4229-8f07-23b9e42f558f",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Trigger').item.json.message.chat.id.toString() }}",
+        "contextWindowLength": 4
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        448,
+        224
+      ],
+      "id": "b1249cd1-1bd8-4242-884f-821a6731e9b1",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        912,
+        0
+      ],
+      "id": "09415680-d596-4829-99fd-f57d2f6264e6",
+      "name": "Send a text message",
+      "webhookId": "8cb194ac-9d18-4111-ad45-7835ec3067d8",
+      "credentials": {
+        "telegramApi": {
+          "id": "kYJTJXgoAtQZRaKa",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Alat ini HANYA digunakan untuk mencari harga dasar barang elektronik. PENTING: Saat menggunakan alat ini, masukkan HANYA nama barang elektroniknya saja sebagai kata kunci pencarian (contoh: 'HP', 'Handphone', 'Laptop', 'TV'). JANGAN PERNAH memasukkan nama wilayah, domisili, atau kata lain ke dalam pencarian alat ini. Jika user menyebutkan nama barang yang umum (seperti 'handphone' atau 'HP'), cobalah untuk mencari kata kunci tersebut di tool Qdrant. Jika tidak langsung ketemu, carilah merek yang relevan di dalam database (seperti 'Samsung' atau 'Nikon'). Kamu harus berusaha mencocokkan input user dengan data barang yang tersedia.",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "rag_collection",
+          "mode": "list",
+          "cachedResultName": "rag_collection"
+        },
+        "topK": 100,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        1008,
+        224
+      ],
+      "id": "ae98dcb8-67a4-4e68-8d8d-939b8b28a443",
+      "name": "Qdrant Vector Store",
+      "credentials": {
+        "qdrantApi": {
+          "id": "6gOJAz3ymuaNEOFL",
+          "name": "QdrantApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "bge-m3:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        416
+      ],
+      "id": "5a4b541e-7799-4560-93b7-4c4bee28e218",
+      "name": "Embeddings Ollama",
+      "credentials": {
+        "ollamaApi": {
+          "id": "PkCUf5166nS8KOV6",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendChatAction",
+        "chatId": "={{ $json.message.chat.id }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        304,
+        0
+      ],
+      "id": "7dad2a42-1d0e-4711-bfbd-e47eeac2420f",
+      "name": "Typing",
+      "webhookId": "a9979e90-6e18-443b-bb17-a39ad8ae3ecb",
+      "credentials": {
+        "telegramApi": {
+          "id": "kYJTJXgoAtQZRaKa",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        304,
+        224
+      ],
+      "id": "68d28830-c3cd-4588-8686-08ad367a2024",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "SfezP6zfE01MUPIO",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+      "typeVersion": 1,
+      "position": [
+        736,
+        224
+      ],
+      "id": "4b7cd93c-3013-4588-b857-a0bd05e2ee69",
+      "name": "Calculator"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Gunakan tool ini untuk mendapatkan harga emas hari ini. Panggil tool ini setelah user menyebutkan jumlah gram emas.",
+        "url": "https://httpbin.org/get?harga_1_gram=1450000",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        592,
+        224
+      ],
+      "id": "15079f77-5b18-45ce-a59f-f323a35a81f6",
+      "name": "cek_harga_emas"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        160,
+        240
+      ],
+      "id": "b358a762-7a6e-42df-aa20-03c07ea0c863",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "WwKHaO36553TMIH8",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Gunakan tool ini HANYA JIKA kamu sudah berhasil menghitung estimasi harga akhir. Wajib isi parameter jenis_barang, pertanyaan, dan estimasi.",
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/api/catat",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "nama_user",
+              "value": "={{ $('Telegram Trigger').item.json.message.from.first_name }}"
+            },
+            {
+              "name": "jenis_barang",
+              "value": "={{ $fromAI('jenis_barang') }}"
+            },
+            {
+              "name": "pertanyaan",
+              "value": "={{ $fromAI('pertanyaan') }}"
+            },
+            {
+              "name": "estimasi",
+              "value": "={{ $fromAI('estimasi') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        880,
+        224
+      ],
+      "id": "4af1ac84-cbe6-4170-9b48-0f9e103bf78f",
+      "name": "catat_ke_dashboard"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Typing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qdrant Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Typing": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculator": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cek_harga_emas": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "catat_ke_dashboard": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "f8e53ac9-b2a0-43bd-bb6c-9d787e928326",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c54a866592e6e03e3bebd04b39e66eaaf56d1d8f48c4332b8a9cc496960ffc5f"
+  },
+  "id": "StmSe7RNkctlibYV",
+  "tags": []
+}
