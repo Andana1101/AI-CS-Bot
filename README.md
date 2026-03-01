@@ -5,7 +5,7 @@ Sistem AI Agent berbasis n8n untuk mensimulasikan layanan Customer Service Gadai
 ## 🏗️ Arsitektur Sistem
 1. **Frontend / Channel:** Telegram Bot API
 2. **Orkestrasi AI:** n8n Workflow Automation (Docker)
-3. **LLM Engine:** Groq API (Llama-3.3 / Llama-3-8b)
+3. **LLM Engine:** Groq API (Llama-3.3 / Llama-3-8b) / Google Gemini Chat Model (Flash 2.5)
 4. **Vector Store:** Qdrant & Ollama Embeddings (bge-m3) untuk RAG Data Elektronik.
 5. **Backend:** Node.js (Express.js) untuk mencatat log estimasi.
 6. **Dashboard:** React.js + Bootstrap 5.
